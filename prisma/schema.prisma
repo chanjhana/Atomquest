@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  employee
+  manager
+  admin
+}
+
+enum GoalSheetStatus {
+  draft
+  pending_approval
+  returned
+  approved_locked
+}
+
+enum GoalStatus {
+  not_started
+  on_track
+  completed
+  manager_reviewed
+}
+
+enum UomType {
+  numeric
+  percentage
+  timeline
+  zero
+}
+
+enum ScoreDirection {
+  higher_is_better
+  lower_is_better
+}
+
+enum Quarter {
+  q1
+  q2
+  q3
+  q4
+}
+
+enum EscalationStatus {
+  open
+  acknowledged
+  resolved
+}
+
+enum EscalationRuleType {
+  goal_submission_overdue
+  manager_approval_overdue
+  check_in_overdue
+}
+
+model User {
+  id              String            @id @default(cuid())
+  name            String
+  email           String            @unique
+  role            Role
+  managerId       String?
+  manager         User?             @relation("ReportingLine", fields: [managerId], references: [id])
+  directReports   User[]            @relation("ReportingLine")
+  department      String
+  designation     String
+  supabaseAuthId  String?           @unique
+  goalSheets      GoalSheet[]       @relation("GoalOwner")
+  managedSheets   GoalSheet[]       @relation("GoalManager")
+  sharedGoals     SharedGoalGroup[] @relation("SharedGoalCreator")
+  primaryGoals    SharedGoalGroup[] @relation("SharedGoalPrimaryOwner")
+  checkIns        CheckIn[]
+  auditLogs       AuditLog[]
+  escalations     Escalation[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Cycle {
+  id                String            @id @default(cuid())
+  name              String
+  goalSettingStart  DateTime
+  goalSettingEnd    DateTime
+  q1Start           DateTime
+  q1End             DateTime
+  q2Start           DateTime
+  q2End             DateTime
+  q3Start           DateTime
+  q3End             DateTime
+  q4Start           DateTime
+  q4End             DateTime
+  isActive          Boolean           @default(false)
+  goalSheets        GoalSheet[]
+  sharedGoalGroups  SharedGoalGroup[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model GoalSheet {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation("GoalOwner", fields: [userId], references: [id])
+  managerId     String
+  manager       User            @relation("GoalManager", fields: [managerId], references: [id])
+  cycleId       String
+  cycle         Cycle           @relation(fields: [cycleId], references: [id])
+  status        GoalSheetStatus @default(draft)
+  returnComment String?
+  submittedAt   DateTime?
+  approvedAt    DateTime?
+  goals         Goal[]
+  auditLogs     AuditLog[]
+  escalations   Escalation[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([userId, cycleId])
+}
+
+model Goal {
+  id                String            @id @default(cuid())
+  goalSheetId       String
+  goalSheet         GoalSheet         @relation(fields: [goalSheetId], references: [id], onDelete: Cascade)
+  title             String
+  description       String
+  thrustArea        String
+  uomType           UomType
+  scoreDirection    ScoreDirection?
+  target            String
+  weightage         Int
+  sortOrder         Int
+  status            GoalStatus        @default(not_started)
+  isShared          Boolean           @default(false)
+  sharedGoalGroupId String?
+  sharedGoalGroup   SharedGoalGroup?  @relation(fields: [sharedGoalGroupId], references: [id])
+  sharedGoalLink    SharedGoalLink?
+  checkIns          CheckIn[]
+  auditLogs         AuditLog[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model SharedGoalGroup {
+  id                 String           @id @default(cuid())
+  createdByUserId    String
+  createdBy          User             @relation("SharedGoalCreator", fields: [createdByUserId], references: [id])
+  primaryOwnerUserId String
+  primaryOwner       User             @relation("SharedGoalPrimaryOwner", fields: [primaryOwnerUserId], references: [id])
+  cycleId            String
+  cycle              Cycle            @relation(fields: [cycleId], references: [id])
+  title              String
+  description        String
+  thrustArea         String
+  uomType            UomType
+  scoreDirection     ScoreDirection?
+  target             String
+  goals              Goal[]
+  links              SharedGoalLink[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model SharedGoalLink {
+  id                String          @id @default(cuid())
+  sharedGoalGroupId String
+  sharedGoalGroup   SharedGoalGroup @relation(fields: [sharedGoalGroupId], references: [id], onDelete: Cascade)
+  goalId            String          @unique
+  goal              Goal            @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  recipientUserId   String
+  isPrimaryOwner    Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+
+  @@unique([sharedGoalGroupId, recipientUserId])
+}
+
+model CheckIn {
+  id                 String     @id @default(cuid())
+  goalId             String
+  goal               Goal       @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User       @relation(fields: [userId], references: [id])
+  quarter            Quarter
+  actualValue        String
+  status             GoalStatus
+  computedScore      Float
+  employeeComment    String?
+  managerComment     String?
+  managerCheckedIn   Boolean    @default(false)
+  employeeSubmittedAt DateTime?
+  managerCheckedInAt DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@unique([goalId, quarter])
+}
+
+model AuditLog {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  goalSheetId   String?
+  goalSheet     GoalSheet? @relation(fields: [goalSheetId], references: [id])
+  goalId        String?
+  goal          Goal?      @relation(fields: [goalId], references: [id])
+  action        String
+  target        String
+  fieldChanged  String?
+  oldValue      String?
+  newValue      String?
+  reason        String?
+  createdAt     DateTime   @default(now())
+}
+
+model Escalation {
+  id              String             @id @default(cuid())
+  goalSheetId     String?
+  goalSheet       GoalSheet?         @relation(fields: [goalSheetId], references: [id])
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  ruleType        EscalationRuleType
+  escalationLevel Int
+  status          EscalationStatus   @default(open)
+  daysPending     Int
+  triggeredAt     DateTime           @default(now())
+  resolvedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}

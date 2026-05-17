@@ -1,0 +1,46 @@
+graph TB
+    subgraph Browser
+        Login[Login / Role Switch]
+        Employee[Employee Dashboard]
+        Manager[Manager Dashboard]
+        Admin[Admin Dashboard]
+    end
+
+    subgraph NextApp[Next.js App Router on Vercel]
+        Shell[Role Scoped App Shell]
+        Actions[Server Actions]
+        APIs[Route Handlers]
+        Services[Domain Services]
+        Validation[Zod Validation]
+        Auth[Supabase-ready Auth + RBAC]
+    end
+
+    subgraph Data[Supabase PostgreSQL via Prisma]
+        Users[(users)]
+        Cycles[(cycles)]
+        Sheets[(goal_sheets)]
+        Goals[(goals)]
+        Shared[(shared_goal_groups / links)]
+        CheckIns[(check_ins)]
+        Audit[(audit_logs)]
+        Esc[(escalations)]
+    end
+
+    Login --> Shell
+    Employee --> Shell
+    Manager --> Shell
+    Admin --> Shell
+    Shell --> Actions
+    Shell --> APIs
+    Actions --> Validation
+    Actions --> Auth
+    Actions --> Services
+    APIs --> Services
+    Services --> Users
+    Services --> Cycles
+    Services --> Sheets
+    Services --> Goals
+    Services --> Shared
+    Services --> CheckIns
+    Services --> Audit
+    Services --> Esc
