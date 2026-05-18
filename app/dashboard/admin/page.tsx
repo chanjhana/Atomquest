@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { unlockGoalSheet } from "@/app/actions/admin";
+import { UnlockSheetForm } from "@/components/admin/unlock-sheet-form";
 import { FlashToast } from "@/components/layout/flash-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { requireRole } from "@/lib/auth/require-role";
 import {
   getAllAssignableUsersData,
@@ -11,7 +10,6 @@ import {
   getEscalationsData,
   getLockedGoalSheetsData,
 } from "@/lib/services/live-data";
-import { formatDate } from "@/lib/utils";
 import {
   AlertTriangle,
   ArrowRight,
@@ -153,22 +151,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
             </div>
           </div>
           {lockedSheets.map((sheet) => (
-            <form key={sheet.id} action={unlockGoalSheet} className="space-y-3 rounded-xl border border-slate-200 p-4">
-              <input type="hidden" name="sheetId" value={sheet.id} />
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
-                  {sheet.user.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{sheet.user.name}</p>
-                  <p className="text-xs text-slate-400">Approved {formatDate(sheet.approvedAt)}</p>
-                </div>
-              </div>
-              <Textarea name="reason" placeholder="Reason for unlock (required for audit log)" className="text-sm" />
-              <Button formAction={unlockGoalSheet} type="submit" variant="secondary" className="gap-2">
-                <Lock className="h-4 w-4" />Unlock Goal Sheet
-              </Button>
-            </form>
+            <UnlockSheetForm key={sheet.id} sheet={sheet} />
           ))}
         </Card>
       ) : null}

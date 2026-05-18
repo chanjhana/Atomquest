@@ -5,16 +5,31 @@ import { requireRole } from "@/lib/auth/require-role";
 import { saveCycleForAdmin, unlockGoalSheetForAdmin } from "@/lib/services/mutations";
 import { cycleSchema } from "@/lib/validation/cycle";
 
-export async function unlockGoalSheet(formData: FormData) {
+export type UnlockFormState = { success?: string; error?: string };
+
+export async function unlockGoalSheet(
+  _prevState: UnlockFormState,
+  formData: FormData
+): Promise<UnlockFormState> {
   const user = await requireRole(["admin"]);
   const sheetId = String(formData.get("sheetId") ?? "");
-  const reason = String(formData.get("reason") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
 
-  await unlockGoalSheetForAdmin({ adminId: user.id, sheetId, reason });
+  if (!reason) {
+    return { error: "A reason is required to unlock a goal sheet." };
+  }
+
+  try {
+    await unlockGoalSheetForAdmin({ adminId: user.id, sheetId, reason });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to unlock goal sheet." };
+  }
 
   revalidatePath("/dashboard/admin/audit-logs");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/employee");
+
+  return { success: "Goal sheet unlocked successfully." };
 }
 
 export type CycleFormState = { success?: string; error?: string };
