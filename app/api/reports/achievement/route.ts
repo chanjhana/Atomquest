@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getReportRowsData } from "@/lib/services/live-data";
 import { toCsv } from "@/lib/services/reports";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const department = searchParams.get("department") ?? undefined;
