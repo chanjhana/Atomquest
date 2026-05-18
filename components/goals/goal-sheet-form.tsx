@@ -2,9 +2,11 @@
 
 import { useRef, useState } from "react";
 import { saveGoalSheetDraft, submitGoalSheet, withdrawGoalSheet } from "@/app/actions/goal-sheets";
+import { FlashToast } from "@/components/layout/flash-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Goal, GoalSheet } from "@/lib/domain/types";
+import { Plus, Save, Send, Undo2 } from "lucide-react";
 import { WeightageBar } from "./weightage-bar";
 import { GoalRow } from "./goal-row";
 
@@ -119,26 +121,24 @@ export function GoalSheetForm({ sheet, serverError, serverSuccess }: { sheet?: G
           </div>
           <div className="flex gap-2">
             {isEditable ? (
-              <Button formAction={saveGoalSheetDraft} type="submit" variant="secondary">
-                Save Draft
+              <Button formAction={saveGoalSheetDraft} type="submit" variant="secondary" className="gap-2">
+                <Save className="h-4 w-4" />Save Draft
               </Button>
             ) : null}
             {isEditable ? (
-              <Button formAction={submitGoalSheet} type="submit" onClick={handleSubmitClick}>
-                Submit for Approval
+              <Button formAction={submitGoalSheet} type="submit" onClick={handleSubmitClick} className="gap-2">
+                <Send className="h-4 w-4" />Submit for Approval
               </Button>
             ) : null}
             {isPending ? (
-              <Button formAction={withdrawGoalSheet} type="submit" variant="secondary">
-                Withdraw Submission
+              <Button formAction={withdrawGoalSheet} type="submit" variant="secondary" className="gap-2">
+                <Undo2 className="h-4 w-4" />Withdraw
               </Button>
             ) : null}
           </div>
         </CardHeader>
         <WeightageBar total={total} />
-        {success ? (
-          <p className="mt-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</p>
-        ) : null}
+        <FlashToast success={success ?? undefined} />
         {error ? (
           <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
         ) : null}
@@ -165,8 +165,8 @@ export function GoalSheetForm({ sheet, serverError, serverSuccess }: { sheet?: G
 
       {isEditable ? (
         <div className="flex items-center gap-3">
-          <Button type="button" variant="secondary" onClick={addGoal} disabled={rows.length >= 8}>
-            + Add Goal
+          <Button type="button" variant="secondary" onClick={addGoal} disabled={rows.length >= 8} className="gap-2">
+            <Plus className="h-4 w-4" />Add Goal
           </Button>
           <span className="text-sm text-slate-500">
             {rows.length} / 8 goals

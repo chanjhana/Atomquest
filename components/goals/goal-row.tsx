@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Goal } from "@/lib/domain/types";
+import { Trash2 } from "lucide-react";
 import { SharedGoalBadge } from "./shared-goal-badge";
 
 function HiddenField({ name, value }: { name: string; value: string | number | boolean | null | undefined }) {
@@ -49,8 +50,8 @@ export function GoalRow({
             <Badge tone={goal.status === "completed" ? "green" : "blue"}>{goal.status.replaceAll("_", " ")}</Badge>
           ) : null}
           {onRemove ? (
-            <Button type="button" variant="secondary" onClick={onRemove}>
-              Remove
+            <Button type="button" variant="ghost" onClick={onRemove} className="gap-1.5 text-red-500 hover:bg-red-50 hover:text-red-700">
+              <Trash2 className="h-4 w-4" />Remove
             </Button>
           ) : null}
         </div>

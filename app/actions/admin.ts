@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/require-role";
 import { saveCycleForAdmin, unlockGoalSheetForAdmin } from "@/lib/services/mutations";
 import { cycleSchema } from "@/lib/validation/cycle";
@@ -11,18 +10,19 @@ export async function unlockGoalSheet(formData: FormData) {
   const sheetId = String(formData.get("sheetId") ?? "");
   const reason = String(formData.get("reason") ?? "");
 
-  await unlockGoalSheetForAdmin({
-    adminId: user.id,
-    sheetId,
-    reason
-  });
+  await unlockGoalSheetForAdmin({ adminId: user.id, sheetId, reason });
 
   revalidatePath("/dashboard/admin/audit-logs");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/employee");
 }
 
-export async function activateCycle(formData: FormData) {
+export type CycleFormState = { success?: string; error?: string };
+
+export async function activateCycle(
+  _prevState: CycleFormState,
+  formData: FormData
+): Promise<CycleFormState> {
   const user = await requireRole(["admin"]);
   const cycleId = String(formData.get("cycleId") ?? "") || null;
 
@@ -37,13 +37,12 @@ export async function activateCycle(formData: FormData) {
     q3Start: String(formData.get("q3Start") ?? ""),
     q3End: String(formData.get("q3End") ?? ""),
     q4Start: String(formData.get("q4Start") ?? ""),
-    q4End: String(formData.get("q4End") ?? "")
+    q4End: String(formData.get("q4End") ?? ""),
   };
 
-  try {
-    cycleSchema.parse(raw);
-  } catch {
-    redirect("/dashboard/admin/cycles?error=Invalid+cycle+data.+Check+all+date+fields.");
+  const validation = cycleSchema.safeParse(raw);
+  if (!validation.success) {
+    return { error: "Invalid cycle data. Check all date fields are filled." };
   }
 
   try {
@@ -60,15 +59,16 @@ export async function activateCycle(formData: FormData) {
       q3Start: new Date(raw.q3Start),
       q3End: new Date(raw.q3End),
       q4Start: new Date(raw.q4Start),
-      q4End: new Date(raw.q4End)
+      q4End: new Date(raw.q4End),
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to activate cycle.";
-    redirect(`/dashboard/admin/cycles?error=${encodeURIComponent(message)}`);
+    return { error: err instanceof Error ? err.message : "Failed to activate cycle." };
   }
 
   revalidatePath("/dashboard/admin/cycles");
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/employee");
   revalidatePath("/dashboard/manager");
+
+  return { success: "Cycle activated successfully." };
 }

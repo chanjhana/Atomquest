@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
+import { Download, Filter } from "lucide-react";
 
 export function ReportFilterBar({
   department,
@@ -49,9 +50,11 @@ export function ReportFilterBar({
           <option value="q4">Q4</option>
         </Select>
       </label>
-      <Button type="button" variant="secondary" onClick={handleApply}>Apply Filter</Button>
+      <Button type="button" variant="secondary" onClick={handleApply} className="gap-2">
+        <Filter className="h-4 w-4" />Apply Filter
+      </Button>
       <a href={csvHref}>
-        <Button>Export CSV</Button>
+        <Button className="gap-2"><Download className="h-4 w-4" />Export CSV</Button>
       </a>
     </Card>
   );
