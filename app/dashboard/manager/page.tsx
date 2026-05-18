@@ -29,12 +29,15 @@ const sheetStatusConfig: Record<string, { label: string; color: string; dot: str
 
 export default async function ManagerDashboardPage() {
   const user = await requireRole(["manager"]);
-  const team = await getTeamMembersData(user.id);
-  const approvals = await getPendingApprovalsData(user.id);
-  const escalations = (await getEscalationsData()).filter(
+  const [team, approvals, allEscalations, summary] = await Promise.all([
+    getTeamMembersData(user.id),
+    getPendingApprovalsData(user.id),
+    getEscalationsData(),
+    getCompletionDashboardData(user.id),
+  ]);
+  const escalations = allEscalations.filter(
     (item) => item.managerName === user.name && item.status === "open"
   );
-  const summary = await getCompletionDashboardData(user.id);
 
   const checkInRate = summary.checkInRate;
   const approvalRate = summary.total > 0 ? Math.round((summary.approved / summary.total) * 100) : 0;

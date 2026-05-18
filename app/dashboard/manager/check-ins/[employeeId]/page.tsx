@@ -6,9 +6,11 @@ import { getCheckInsForUserData, getGoalSheetForUserData, getUserByIdData } from
 
 export default async function ManagerCheckInDetailPage({ params }: { params: { employeeId: string } }) {
   await requireRole(["manager"]);
-  const employee = await getUserByIdData(params.employeeId);
-  const sheet = await getGoalSheetForUserData(params.employeeId);
-  const checkIns = await getCheckInsForUserData(params.employeeId, "q1");
+  const [employee, sheet, checkIns] = await Promise.all([
+    getUserByIdData(params.employeeId),
+    getGoalSheetForUserData(params.employeeId),
+    getCheckInsForUserData(params.employeeId, "q1"),
+  ]);
   return (
     <div className="space-y-6">
       <div>

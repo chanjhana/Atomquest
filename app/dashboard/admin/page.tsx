@@ -27,12 +27,14 @@ import {
 
 export default async function AdminDashboardPage({ searchParams }: { searchParams?: { success?: string } }) {
   await requireRole(["admin"]);
-  const allUsers = await getAllAssignableUsersData();
+  const [allUsers, escalations, summary, lockedSheets] = await Promise.all([
+    getAllAssignableUsersData(),
+    getEscalationsData(),
+    getCompletionDashboardData(),
+    getLockedGoalSheetsData(),
+  ]);
   const employeeCount = allUsers.filter((u) => u.role === "employee").length;
-  const escalations = await getEscalationsData();
   const openEscalations = escalations.filter((item) => item.status === "open").length;
-  const summary = await getCompletionDashboardData();
-  const lockedSheets = await getLockedGoalSheetsData();
 
   const approvalRate = summary.total > 0 ? Math.round((summary.approved / summary.total) * 100) : 0;
 

@@ -14,9 +14,11 @@ export default async function EmployeeCheckInsPage({
   searchParams?: { success?: string };
 }) {
   const user = await requireRole(["employee"]);
-  const cycle = await getActiveCycleData();
+  const [cycle, sheet] = await Promise.all([
+    getActiveCycleData(),
+    getGoalSheetForUserData(user.id),
+  ]);
   const quarter = activeQuarter(cycle);
-  const sheet = await getGoalSheetForUserData(user.id);
   const checkIns = await getCheckInsForUserData(user.id, quarter);
   const open = isQuarterOpen(cycle, quarter);
 

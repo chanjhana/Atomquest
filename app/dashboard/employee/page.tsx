@@ -27,9 +27,11 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; b
 
 export default async function EmployeeDashboardPage({ searchParams }: { searchParams?: { success?: string } }) {
   const user = await requireRole(["employee"]);
-  const sheet = await getGoalSheetForUserData(user.id);
+  const [sheet, cycle] = await Promise.all([
+    getGoalSheetForUserData(user.id),
+    getActiveCycleData(),
+  ]);
   const summary = summarizeSheet(sheet);
-  const cycle = await getActiveCycleData();
   const goalSettingOpen = isGoalSettingOpen(cycle);
   const quarter = activeQuarter(cycle);
   const checkInOpen = isQuarterOpen(cycle, quarter);
