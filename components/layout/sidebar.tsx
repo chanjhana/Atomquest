@@ -54,44 +54,44 @@ const navByRole: Record<Role, NavItem[]> = {
   ],
 };
 
-const roleColors: Record<Role, string> = {
-  employee: "bg-blue-100 text-blue-700",
-  manager: "bg-violet-100 text-violet-700",
-  admin: "bg-teal-100 text-teal-700",
-};
-
 export function Sidebar({ role }: { role: Role }) {
   const pathname = usePathname();
   const items = navByRole[role];
 
   return (
-    <aside className="flex min-h-screen w-64 flex-col border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-5 py-5">
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-700">Tracko</p>
-        <p className="mt-1 text-base font-semibold text-slate-900">Performance Portal</p>
-        <span className={cn("mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold", roleColors[role])}>
-          {roleLabels[role]}
-        </span>
+    <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r-2 border-black bg-white">
+      {/* Brand */}
+      <div className="border-b-2 border-black px-6 py-6 swiss-diagonal">
+        <p className="text-xs font-black uppercase tracking-[0.5em] text-[#FF3000]">Tracko</p>
+        <p className="mt-2 text-lg font-black uppercase leading-tight tracking-tighter text-black">
+          Performance<br />Portal
+        </p>
+        <div className="mt-3 inline-flex border-2 border-black px-2.5 py-1">
+          <span className="text-xs font-black uppercase tracking-wider text-black">
+            {roleLabels[role]}
+          </span>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto">
         {items.map((item) => {
-          const active = pathname === item.href || (item.href !== `/dashboard/${role}` && pathname.startsWith(item.href));
+          const active =
+            pathname === item.href ||
+            (item.href !== `/dashboard/${role}` && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-teal-50 text-teal-800"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                "flex items-center gap-3 border-b border-black/15 px-6 py-4 text-xs font-black uppercase tracking-wider transition-colors duration-150",
+                active ? "bg-black text-white" : "text-black hover:bg-[#F2F2F2]"
               )}
             >
-              <item.icon className={cn("h-4 w-4 shrink-0", active ? "text-teal-600" : "text-slate-400")} />
+              <item.icon className="h-4 w-4 shrink-0" />
               {item.label}
               {item.label === "Escalations" && !active && (
-                <span className="ml-auto h-2 w-2 rounded-full bg-red-400" />
+                <span className="ml-auto h-2 w-2 bg-[#FF3000]" />
               )}
             </Link>
           );

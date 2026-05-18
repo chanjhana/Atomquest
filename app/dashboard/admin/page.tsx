@@ -21,7 +21,6 @@ import {
   GitBranch,
   Lock,
   ScrollText,
-  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -35,61 +34,74 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
   ]);
   const employeeCount = allUsers.filter((u) => u.role === "employee").length;
   const openEscalations = escalations.filter((item) => item.status === "open").length;
-
   const approvalRate = summary.total > 0 ? Math.round((summary.approved / summary.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <FlashToast success={searchParams?.success} />
 
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-950">Admin Home</h1>
-        <p className="text-slate-400 text-sm">Org-wide performance management controls</p>
+      {/* Header */}
+      <div className="border-b-2 border-black pb-6">
+        <p className="text-xs font-black uppercase tracking-[0.4em] text-[#FF3000]">Admin</p>
+        <h1 className="mt-1 text-3xl font-black uppercase tracking-tighter text-black">Admin Home</h1>
+        <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-black/60">
+          Org-wide performance management controls
+        </p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid border-t-2 border-black md:grid-cols-4">
         {[
-          { label: "Employees", value: employeeCount,                          icon: Users,         color: "bg-blue-50",   icon_color: "text-blue-600"   },
-          { label: "Submitted", value: summary.pending + summary.approved,     icon: ClipboardCheck, color: "bg-teal-50",  icon_color: "text-teal-600"   },
-          { label: "Pending Approval", value: summary.pending,                 icon: CheckSquare,   color: "bg-amber-50",  icon_color: "text-amber-600"  },
-          { label: "Open Escalations", value: openEscalations,                 icon: AlertTriangle, color: openEscalations > 0 ? "bg-red-50" : "bg-slate-50", icon_color: openEscalations > 0 ? "text-red-500" : "text-slate-400" },
-        ].map(({ label, value, icon: Icon, color, icon_color }) => (
-          <Card key={label} className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`rounded-xl p-2.5 ${color}`}><Icon className={`h-5 w-5 ${icon_color}`} /></div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-                <p className="text-2xl font-bold text-slate-900">{value}</p>
-              </div>
+          { label: "Employees",        value: employeeCount,                       icon: Users,          accent: false },
+          { label: "Submitted",        value: summary.pending + summary.approved,  icon: ClipboardCheck, accent: false },
+          { label: "Pending Approval", value: summary.pending,                     icon: CheckSquare,    accent: false },
+          { label: "Open Escalations", value: openEscalations,                     icon: AlertTriangle,  accent: openEscalations > 0 },
+        ].map(({ label, value, icon: Icon, accent }) => (
+          <div
+            key={label}
+            className={`border-b-2 border-black p-6 md:border-r-2 md:last:border-r-0 ${accent ? "bg-[#FF3000]" : ""}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className={`text-xs font-black uppercase tracking-wider ${accent ? "text-white/80" : "text-black/60"}`}>
+                {label}
+              </p>
+              <Icon className={`h-4 w-4 shrink-0 ${accent ? "text-white/70" : "text-black/35"}`} />
             </div>
-          </Card>
+            <p className={`mt-3 text-4xl font-black tracking-tighter ${accent ? "text-white" : "text-black"}`}>
+              {value}
+            </p>
+          </div>
         ))}
       </div>
 
       {/* Org progress */}
-      <Card className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-slate-900">Organisation Progress</h2>
+      <Card className="p-0">
+        <div className="flex items-center justify-between border-b-2 border-black px-6 py-4">
+          <h2 className="text-xs font-black uppercase tracking-wider text-black">Organisation Progress</h2>
           <Link href="/dashboard/admin/completion">
-            <Button variant="ghost" className="gap-1 text-xs text-slate-500">
-              Full view <ArrowRight className="h-3 w-3" />
+            <Button variant="ghost" className="gap-1 text-xs">
+              Full View <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
         </div>
-        <div className="space-y-3">
+        <div>
           {[
-            { label: "Goals Approved",         value: approvalRate,                color: "bg-teal-500"   },
-            { label: "Check-ins Submitted",    value: summary.checkInRate,         color: "bg-blue-500"   },
-            { label: "Manager Reviews Done",   value: summary.managerReviewRate,   color: "bg-violet-500" },
-          ].map(({ label, value, color }) => (
-            <div key={label}>
-              <div className="flex justify-between mb-1.5">
-                <span className="text-sm text-slate-600">{label}</span>
-                <span className="text-sm font-semibold text-slate-800">{value}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-slate-100">
-                <div className={`h-2 rounded-full ${color}`} style={{ width: `${value}%` }} />
+            { label: "Goals Approved",       value: approvalRate               },
+            { label: "Check-ins Submitted",  value: summary.checkInRate        },
+            { label: "Manager Reviews Done", value: summary.managerReviewRate  },
+          ].map(({ label, value }, i, arr) => (
+            <div
+              key={label}
+              className={`flex items-center gap-6 px-6 py-5 ${i < arr.length - 1 ? "border-b border-black/12" : ""}`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-black">{label}</span>
+                  <span className="text-xs font-black text-black">{value}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-[#F2F2F2]">
+                  <div className="h-1.5 bg-black transition-all" style={{ width: `${value}%` }} />
+                </div>
               </div>
             </div>
           ))}
@@ -98,16 +110,22 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
 
       {/* Escalation alert */}
       {openEscalations > 0 ? (
-        <div className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
+        <div className="flex items-center justify-between border-2 border-[#FF3000] px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="bg-[#FF3000] p-3 shrink-0">
+              <AlertTriangle className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <p className="text-sm font-semibold text-red-800">{openEscalations} open escalation{openEscalations !== 1 ? "s" : ""} need attention</p>
-              <p className="text-xs text-red-500">Overdue goal submissions, approvals, or check-ins.</p>
+              <p className="text-xs font-black uppercase tracking-wider text-black">
+                {openEscalations} Open Escalation{openEscalations !== 1 ? "s" : ""} Need Attention
+              </p>
+              <p className="mt-1 text-sm text-black/65">
+                Overdue goal submissions, approvals, or check-ins.
+              </p>
             </div>
           </div>
           <Link href="/dashboard/admin/escalations">
-            <Button className="gap-2 bg-red-600 hover:bg-red-700">
+            <Button variant="danger" className="gap-2 shrink-0">
               View <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -116,27 +134,31 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
 
       {/* Quick actions grid */}
       <div>
-        <h2 className="mb-3 font-semibold text-slate-900">Quick Actions</h2>
-        <div className="grid gap-3 md:grid-cols-3">
+        <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-black">Quick Actions</h2>
+        <div className="grid border-t-2 border-black md:grid-cols-3">
           {[
             { href: "/dashboard/admin/cycles",        label: "Cycles",           icon: CalendarRange,  desc: "Configure goal & check-in windows" },
-            { href: "/dashboard/admin/org-hierarchy", label: "Org Hierarchy",    icon: GitBranch,      desc: "Manage reporting lines" },
-            { href: "/dashboard/admin/escalations",   label: "Escalations",      icon: AlertTriangle,  desc: "Rule-based overdue tracking" },
-            { href: "/dashboard/admin/reports",       label: "Reports & Export", icon: FileDown,       desc: "Achievement CSV export" },
-            { href: "/dashboard/admin/analytics",     label: "Analytics",        icon: BarChart3,      desc: "QoQ trends and distributions" },
-            { href: "/dashboard/admin/audit-logs",    label: "Audit Logs",       icon: ScrollText,     desc: "Append-only change history" },
+            { href: "/dashboard/admin/org-hierarchy", label: "Org Hierarchy",    icon: GitBranch,      desc: "Manage reporting lines"            },
+            { href: "/dashboard/admin/escalations",   label: "Escalations",      icon: AlertTriangle,  desc: "Rule-based overdue tracking"       },
+            { href: "/dashboard/admin/reports",       label: "Reports & Export", icon: FileDown,       desc: "Achievement CSV export"            },
+            { href: "/dashboard/admin/analytics",     label: "Analytics",        icon: BarChart3,      desc: "QoQ trends and distributions"      },
+            { href: "/dashboard/admin/audit-logs",    label: "Audit Logs",       icon: ScrollText,     desc: "Append-only change history"        },
           ].map(({ href, label, icon: Icon, desc }) => (
             <Link key={href} href={href}>
-              <Card className="flex items-center gap-3 p-4 hover:border-teal-200 hover:bg-teal-50 transition-colors cursor-pointer">
-                <div className="rounded-xl bg-slate-100 p-2.5 shrink-0">
-                  <Icon className="h-4 w-4 text-slate-600" />
+              <div className="group flex items-center gap-4 border-b-2 border-black p-6 transition-colors hover:bg-black md:border-r-2 [&:nth-child(3n)]:md:border-r-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#F2F2F2] group-hover:bg-white/10">
+                  <Icon className="h-4 w-4 text-black group-hover:text-white" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">{label}</p>
-                  <p className="text-xs text-slate-400 truncate">{desc}</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-black group-hover:text-white">
+                    {label}
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-black/55 group-hover:text-white/70">
+                    {desc}
+                  </p>
                 </div>
-                <ArrowRight className="ml-auto h-4 w-4 text-slate-300 shrink-0" />
-              </Card>
+                <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-black/30 group-hover:text-white" />
+              </div>
             </Link>
           ))}
         </div>
@@ -144,18 +166,22 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
 
       {/* Unlock goal sheets */}
       {lockedSheets.length > 0 ? (
-        <Card className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Lock className="h-4 w-4 text-slate-500" />
+        <div>
+          <div className="flex items-center gap-3 border-b-2 border-black pb-4">
+            <Lock className="h-4 w-4 text-black" />
             <div>
-              <h2 className="font-semibold text-slate-950">Unlock Goal Sheet</h2>
-              <p className="text-xs text-slate-400">Admin-only exception flow with mandatory audit reason.</p>
+              <h2 className="text-xs font-black uppercase tracking-wider text-black">Unlock Goal Sheet</h2>
+              <p className="text-xs font-semibold uppercase tracking-wide text-black/55">
+                Admin-only exception flow with mandatory audit reason.
+              </p>
             </div>
           </div>
-          {lockedSheets.map((sheet) => (
-            <UnlockSheetForm key={sheet.id} sheet={sheet} />
-          ))}
-        </Card>
+          <div className="mt-4 space-y-4">
+            {lockedSheets.map((sheet) => (
+              <UnlockSheetForm key={sheet.id} sheet={sheet} />
+            ))}
+          </div>
+        </div>
       ) : null}
     </div>
   );

@@ -9,7 +9,6 @@ import { formatDate } from "@/lib/utils";
 import {
   AlertCircle,
   ArrowRight,
-  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Clock,
@@ -17,12 +16,12 @@ import {
   Target,
 } from "lucide-react";
 
-const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft:            { label: "Draft",               color: "text-slate-600",  bg: "bg-slate-50",   border: "border-slate-200" },
-  pending_approval: { label: "Pending Approval",    color: "text-amber-700",  bg: "bg-amber-50",   border: "border-amber-200" },
-  approved_locked:  { label: "Approved & Locked",   color: "text-green-700",  bg: "bg-green-50",   border: "border-green-200" },
-  returned:         { label: "Returned for Edits",  color: "text-red-700",    bg: "bg-red-50",     border: "border-red-200"   },
-  none:             { label: "No Sheet Yet",         color: "text-slate-500",  bg: "bg-slate-50",   border: "border-slate-200" },
+const statusConfig: Record<string, { label: string; accent: string; textColor: string; border: string }> = {
+  draft:            { label: "Draft",               accent: "bg-black",       textColor: "text-black",       border: "border-black"       },
+  pending_approval: { label: "Pending Approval",    accent: "bg-black",       textColor: "text-black",       border: "border-black"       },
+  approved_locked:  { label: "Approved & Locked",   accent: "bg-black",       textColor: "text-black",       border: "border-black"       },
+  returned:         { label: "Returned for Edits",  accent: "bg-[#FF3000]",   textColor: "text-[#FF3000]",   border: "border-[#FF3000]"   },
+  none:             { label: "No Sheet Yet",          accent: "bg-black/40",    textColor: "text-black/60",    border: "border-black"       },
 };
 
 export default async function EmployeeDashboardPage({ searchParams }: { searchParams?: { success?: string } }) {
@@ -43,10 +42,13 @@ export default async function EmployeeDashboardPage({ searchParams }: { searchPa
       <FlashToast success={searchParams?.success} />
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-950">My Dashboard</h1>
-          <p className="text-slate-400 text-sm">Welcome back, {user.name}</p>
+          <p className="text-xs font-black uppercase tracking-[0.4em] text-[#FF3000]">Employee</p>
+          <h1 className="mt-1 text-3xl font-black uppercase tracking-tighter text-black">My Dashboard</h1>
+          <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-black/60">
+            Welcome back, {user.name}
+          </p>
         </div>
         <Link href="/dashboard/employee/goals/new">
           <Button className="gap-2">
@@ -57,25 +59,33 @@ export default async function EmployeeDashboardPage({ searchParams }: { searchPa
       </div>
 
       {/* Goal sheet status banner */}
-      <div className={`rounded-2xl border p-5 ${status.bg} ${status.border}`}>
+      <div className={`border-2 p-5 ${status.border}`}>
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {statusKey === "approved_locked" ? <CheckCircle2 className={`h-5 w-5 ${status.color}`} /> :
-             statusKey === "returned"         ? <AlertCircle  className={`h-5 w-5 ${status.color}`} /> :
-                                               <Clock        className={`h-5 w-5 ${status.color}`} />}
+          <div className="flex items-center gap-4">
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center ${status.accent}`}>
+              {statusKey === "approved_locked" ? (
+                <CheckCircle2 className="h-5 w-5 text-white" />
+              ) : statusKey === "returned" ? (
+                <AlertCircle className="h-5 w-5 text-white" />
+              ) : (
+                <Clock className="h-5 w-5 text-white" />
+              )}
+            </div>
             <div>
-              <p className={`text-sm font-semibold ${status.color}`}>{status.label}</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className={`text-xs font-black uppercase tracking-wider ${status.textColor}`}>
+                {status.label}
+              </p>
+              <p className="mt-1 text-sm text-black/65">
                 {statusKey === "approved_locked" && "Your goals are locked and ready for quarterly check-ins."}
                 {statusKey === "pending_approval" && "Waiting for your manager to review and approve."}
                 {statusKey === "draft" && "Finish adding goals and submit when total weightage reaches 100%."}
                 {statusKey === "returned" && sheet?.returnComment && `Manager comment: ${sheet.returnComment}`}
-                {statusKey === "none" && goalSettingOpen ? "Goal setting window is open — create your goals now." : "No goal sheet for this cycle."}
+                {statusKey === "none" && (goalSettingOpen ? "Goal setting window is open — create your goals now." : "No goal sheet for this cycle.")}
               </p>
             </div>
           </div>
           <Link href="/dashboard/employee/goals/new">
-            <Button variant="ghost" className="gap-1 text-xs">
+            <Button variant="secondary" className="gap-1 shrink-0">
               {statusKey === "approved_locked" ? "View" : "Edit"} <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
@@ -83,53 +93,52 @@ export default async function EmployeeDashboardPage({ searchParams }: { searchPa
       </div>
 
       {/* Stats row */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-teal-50 p-2.5"><Target className="h-5 w-5 text-teal-600" /></div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Goals</p>
-              <p className="text-2xl font-bold text-slate-900">{summary.goalCount}</p>
-              <p className="text-xs text-slate-500">{summary.totalWeightage}% total weightage</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-violet-50 p-2.5"><CalendarDays className="h-5 w-5 text-violet-600" /></div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Active Cycle</p>
-              <p className="text-lg font-bold text-slate-900">{cycle.name}</p>
-              <p className="text-xs text-slate-500">Goal setting {goalSettingOpen ? "open" : `closes ${formatDate(cycle.goalSettingEnd)}`}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className={`rounded-xl p-2.5 ${checkInOpen ? "bg-green-50" : "bg-slate-50"}`}>
-              <ClipboardList className={`h-5 w-5 ${checkInOpen ? "text-green-600" : "text-slate-400"}`} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Check-in</p>
-              <p className="text-lg font-bold text-slate-900">{quarter.toUpperCase()}</p>
-              <p className="text-xs text-slate-500">{checkInOpen ? "Window is open" : `Opens ${formatDate(cycle[`${quarter}Start` as keyof typeof cycle] as string)}`}</p>
-            </div>
-          </div>
-        </Card>
+      <div className="grid border-t-2 border-black md:grid-cols-3">
+        <div className="border-b-2 border-black p-6 md:border-r-2">
+          <p className="text-xs font-black uppercase tracking-wider text-black/60">Goals</p>
+          <p className="mt-3 text-5xl font-black tracking-tighter text-black">{summary.goalCount}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-black/55">
+            {summary.totalWeightage}% total weightage
+          </p>
+        </div>
+        <div className="border-b-2 border-black p-6 md:border-r-2">
+          <p className="text-xs font-black uppercase tracking-wider text-black/60">Active Cycle</p>
+          <p className="mt-3 text-2xl font-black uppercase tracking-tighter text-black">{cycle.name}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-black/55">
+            Goal setting {goalSettingOpen ? "open" : `closes ${formatDate(cycle.goalSettingEnd)}`}
+          </p>
+        </div>
+        <div className="border-b-2 border-black p-6">
+          <p className="text-xs font-black uppercase tracking-wider text-black/60">Check-in</p>
+          <p className={`mt-3 text-5xl font-black tracking-tighter ${checkInOpen ? "text-black" : "text-black/40"}`}>
+            {quarter.toUpperCase()}
+          </p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-black/55">
+            {checkInOpen
+              ? "Window is open"
+              : `Opens ${formatDate(cycle[`${quarter}Start` as keyof typeof cycle] as string)}`}
+          </p>
+        </div>
       </div>
 
       {/* Check-in CTA */}
       {checkInOpen && statusKey === "approved_locked" ? (
-        <div className="flex items-center justify-between rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <ClipboardList className="h-5 w-5 text-teal-700" />
+        <div className="flex items-center justify-between border-2 border-black bg-[#F2F2F2] px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="bg-[#FF3000] p-3 shrink-0">
+              <ClipboardList className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <p className="text-sm font-semibold text-teal-800">{quarter.toUpperCase()} check-in window is open</p>
-              <p className="text-xs text-teal-600">Submit your actual achievements before the window closes.</p>
+              <p className="text-xs font-black uppercase tracking-wider text-black">
+                {quarter.toUpperCase()} Check-in Window is Open
+              </p>
+              <p className="mt-1 text-sm text-black/65">
+                Submit your actual achievements before the window closes.
+              </p>
             </div>
           </div>
           <Link href="/dashboard/employee/check-ins">
-            <Button className="gap-2 bg-teal-700 hover:bg-teal-800">
+            <Button className="gap-2 shrink-0">
               Go to Check-in <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -138,52 +147,63 @@ export default async function EmployeeDashboardPage({ searchParams }: { searchPa
 
       {/* Goals list */}
       {sheet && sheet.goals.length > 0 ? (
-        <Card>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900">Goal Sheet</h2>
-            <span className="text-xs text-slate-400">{sheet.goals.length} goal{sheet.goals.length !== 1 ? "s" : ""}</span>
+        <Card className="p-0">
+          <div className="flex items-center justify-between border-b-2 border-black px-6 py-4">
+            <h2 className="text-xs font-black uppercase tracking-wider text-black">Goal Sheet</h2>
+            <span className="text-xs font-bold text-black/55">
+              {sheet.goals.length} goal{sheet.goals.length !== 1 ? "s" : ""}
+            </span>
           </div>
-          <div className="space-y-2">
-            {sheet.goals.map((goal) => (
-              <div key={goal.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <div>
+            {sheet.goals.map((goal, i) => (
+              <div
+                key={goal.id}
+                className={`flex items-center gap-4 px-6 py-4 ${i < sheet.goals.length - 1 ? "border-b border-black/12" : ""}`}
+              >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-800 truncate">{goal.title}</p>
+                    <p className="text-sm font-bold text-black truncate">{goal.title}</p>
                     {goal.isShared ? (
-                      <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">Shared</span>
+                      <span className="shrink-0 bg-black px-2 py-0.5 text-xs font-black uppercase tracking-wider text-white">
+                        Shared
+                      </span>
                     ) : null}
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">{goal.thrustArea}</p>
+                  <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-black/55">
+                    {goal.thrustArea}
+                  </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-sm font-semibold text-slate-700">{goal.weightage}%</p>
-                  <div className="mt-1 h-1.5 w-16 rounded-full bg-slate-200">
-                    <div className="h-1.5 rounded-full bg-teal-500" style={{ width: `${goal.weightage}%` }} />
+                  <p className="text-sm font-black text-black">{goal.weightage}%</p>
+                  <div className="mt-1.5 h-1.5 w-16 bg-[#F2F2F2]">
+                    <div className="h-1.5 bg-black" style={{ width: `${goal.weightage}%` }} />
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          {/* Total bar */}
-          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-            <p className="text-xs font-semibold text-slate-500">Total Weightage</p>
-            <p className={`text-sm font-bold ${summary.totalWeightage === 100 ? "text-green-600" : "text-amber-600"}`}>
+          <div className="flex items-center justify-between border-t-2 border-black px-6 py-4">
+            <p className="text-xs font-black uppercase tracking-wider text-black/60">Total Weightage</p>
+            <p className={`text-sm font-black ${summary.totalWeightage === 100 ? "text-black" : "text-[#FF3000]"}`}>
               {summary.totalWeightage}%
             </p>
           </div>
         </Card>
       ) : (
-        <Card>
-          <div className="py-10 text-center">
-            <Target className="mx-auto h-10 w-10 text-slate-200" />
-            <p className="mt-3 text-sm font-medium text-slate-500">No goals yet</p>
-            <p className="text-xs text-slate-400">{goalSettingOpen ? "The goal setting window is open." : "Goal setting is closed for this cycle."}</p>
-            {goalSettingOpen ? (
-              <Link href="/dashboard/employee/goals/new">
-                <Button className="mt-4 gap-2" variant="secondary"><FileText className="h-4 w-4" />Create Goal Sheet</Button>
-              </Link>
-            ) : null}
-          </div>
+        <Card className="py-14 text-center">
+          <Target className="mx-auto h-8 w-8 text-black/20" />
+          <p className="mt-4 text-sm font-black uppercase tracking-wider text-black/55">No Goals Yet</p>
+          <p className="mt-1 text-sm text-black/45">
+            {goalSettingOpen ? "The goal setting window is open." : "Goal setting is closed for this cycle."}
+          </p>
+          {goalSettingOpen ? (
+            <Link href="/dashboard/employee/goals/new">
+              <Button className="mt-6 gap-2" variant="secondary">
+                <FileText className="h-4 w-4" />
+                Create Goal Sheet
+              </Button>
+            </Link>
+          ) : null}
         </Card>
       )}
     </div>

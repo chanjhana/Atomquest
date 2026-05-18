@@ -2,24 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-  --border: 214 32% 91%;
-}
-
 * {
   box-sizing: border-box;
 }
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(20, 184, 166, 0.16), transparent 34rem),
-    linear-gradient(135deg, #f8fafc 0%, #eef6f5 45%, #fff7ed 100%);
-  color: #0f172a;
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.028) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: #000000;
+}
+
+/* Swiss CSS Patterns */
+.swiss-dots {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.045) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.swiss-diagonal {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(0, 0, 0, 0.022) 8px,
+    rgba(0, 0, 0, 0.022) 10px
+  );
+}
+
+.swiss-grid {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF3000] focus-visible:ring-offset-0;
+}
+
+/* Smooth transitions for hover states */
+@media (prefers-reduced-motion: no-preference) {
+  .transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
+    transition-timing-function: linear;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
 }

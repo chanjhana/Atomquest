@@ -20,13 +20,6 @@ import {
   Users,
 } from "lucide-react";
 
-const sheetStatusConfig: Record<string, { label: string; color: string; dot: string }> = {
-  approved_locked:  { label: "Approved",         color: "text-green-700",  dot: "bg-green-500" },
-  pending_approval: { label: "Pending Approval",  color: "text-amber-700",  dot: "bg-amber-500" },
-  returned:         { label: "Returned",          color: "text-red-700",    dot: "bg-red-500"   },
-  draft:            { label: "Draft",             color: "text-slate-500",  dot: "bg-slate-400" },
-};
-
 export default async function ManagerDashboardPage() {
   const user = await requireRole(["manager"]);
   const [team, approvals, allEscalations, summary] = await Promise.all([
@@ -45,102 +38,97 @@ export default async function ManagerDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-950">Team Overview</h1>
-        <p className="text-slate-400 text-sm">Managing {team.length} direct report{team.length !== 1 ? "s" : ""}</p>
+      <div className="border-b-2 border-black pb-6">
+        <p className="text-xs font-black uppercase tracking-[0.4em] text-[#FF3000]">Manager</p>
+        <h1 className="mt-1 text-3xl font-black uppercase tracking-tighter text-black">Team Overview</h1>
+        <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-black/60">
+          Managing {team.length} direct report{team.length !== 1 ? "s" : ""}
+        </p>
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-50 p-2.5"><Users className="h-5 w-5 text-blue-600" /></div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Team</p>
-              <p className="text-2xl font-bold text-slate-900">{team.length}</p>
+      <div className="grid border-t-2 border-black md:grid-cols-4">
+        {[
+          { label: "Team Size",   value: team.length,        icon: Users,         sub: "direct reports",  accent: false },
+          { label: "Pending",     value: approvals.length,   icon: Clock,         sub: "awaiting review", accent: false },
+          { label: "Check-ins",   value: `${checkInRate}%`,  icon: TrendingUp,    sub: "submitted",       accent: false },
+          { label: "Escalations", value: escalations.length, icon: AlertTriangle, sub: "open",            accent: escalations.length > 0 },
+        ].map(({ label, value, icon: Icon, sub, accent }) => (
+          <div
+            key={label}
+            className={`border-b-2 border-black p-6 md:border-r-2 md:last:border-r-0 ${accent ? "bg-[#FF3000]" : ""}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className={`text-xs font-black uppercase tracking-wider ${accent ? "text-white/80" : "text-black/60"}`}>
+                {label}
+              </p>
+              <Icon className={`h-4 w-4 shrink-0 ${accent ? "text-white/70" : "text-black/35"}`} />
             </div>
+            <p className={`mt-3 text-4xl font-black tracking-tighter ${accent ? "text-white" : "text-black"}`}>
+              {value}
+            </p>
+            <p className={`mt-1 text-xs font-semibold uppercase tracking-wide ${accent ? "text-white/75" : "text-black/55"}`}>
+              {sub}
+            </p>
           </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-amber-50 p-2.5"><Clock className="h-5 w-5 text-amber-600" /></div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Pending</p>
-              <p className="text-2xl font-bold text-slate-900">{approvals.length}</p>
-              <p className="text-xs text-slate-500">awaiting review</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-green-50 p-2.5"><TrendingUp className="h-5 w-5 text-green-600" /></div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Check-ins</p>
-              <p className="text-2xl font-bold text-slate-900">{checkInRate}%</p>
-              <p className="text-xs text-slate-500">submitted</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className={`rounded-xl p-2.5 ${escalations.length > 0 ? "bg-red-50" : "bg-slate-50"}`}>
-              <AlertTriangle className={`h-5 w-5 ${escalations.length > 0 ? "text-red-500" : "text-slate-400"}`} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Escalations</p>
-              <p className="text-2xl font-bold text-slate-900">{escalations.length}</p>
-              <p className="text-xs text-slate-500">open</p>
-            </div>
-          </div>
-        </Card>
+        ))}
       </div>
 
       {/* Approvals CTA */}
       {approvals.length > 0 ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="text-sm font-semibold text-amber-800">
-                  {approvals.length} goal sheet{approvals.length !== 1 ? "s" : ""} waiting for your approval
-                </p>
-                <p className="text-xs text-amber-600">Review and approve or return for revision.</p>
-              </div>
+        <div className="flex items-center justify-between border-2 border-black bg-[#F2F2F2] px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="bg-black p-3 shrink-0">
+              <Clock className="h-5 w-5 text-white" />
             </div>
-            <Link href="/dashboard/manager/approvals">
-              <Button className="gap-2 bg-amber-600 hover:bg-amber-700">
-                Review Now <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-black">
+                {approvals.length} Goal Sheet{approvals.length !== 1 ? "s" : ""} Awaiting Your Approval
+              </p>
+              <p className="mt-1 text-sm text-black/65">Review and approve or return for revision.</p>
+            </div>
           </div>
+          <Link href="/dashboard/manager/approvals">
+            <Button className="gap-2 shrink-0">
+              Review Now <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       ) : (
-        <div className="flex items-center gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4">
-          <CheckCircle2 className="h-5 w-5 text-green-600" />
-          <p className="text-sm font-medium text-green-700">All caught up — no pending approvals.</p>
+        <div className="flex items-center gap-4 border-2 border-black px-6 py-5">
+          <div className="bg-black p-3 shrink-0">
+            <CheckCircle2 className="h-5 w-5 text-white" />
+          </div>
+          <p className="text-xs font-black uppercase tracking-wider text-black">
+            All Caught Up — No Pending Approvals
+          </p>
         </div>
       )}
 
       {/* Progress bars */}
-      <Card className="space-y-4">
-        <h2 className="font-semibold text-slate-900">Team Progress</h2>
-        <div className="space-y-3">
+      <Card className="p-0">
+        <div className="border-b-2 border-black px-6 py-4">
+          <h2 className="text-xs font-black uppercase tracking-wider text-black">Team Progress</h2>
+        </div>
+        <div>
           {[
-            { label: "Goals Approved", value: approvalRate, icon: CheckSquare, color: "bg-teal-500" },
-            { label: "Check-ins Submitted", value: checkInRate, icon: ClipboardCheck, color: "bg-blue-500" },
-            { label: "Manager Reviews Done", value: summary.managerReviewRate, icon: CheckCircle2, color: "bg-violet-500" },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label}>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2">
-                  <Icon className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-sm text-slate-600">{label}</span>
+            { label: "Goals Approved",        value: approvalRate,              icon: CheckSquare   },
+            { label: "Check-ins Submitted",   value: checkInRate,               icon: ClipboardCheck },
+            { label: "Manager Reviews Done",  value: summary.managerReviewRate, icon: CheckCircle2  },
+          ].map(({ label, value, icon: Icon }, i, arr) => (
+            <div
+              key={label}
+              className={`flex items-center gap-6 px-6 py-5 ${i < arr.length - 1 ? "border-b border-black/12" : ""}`}
+            >
+              <Icon className="h-4 w-4 shrink-0 text-black/40" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-black">{label}</span>
+                  <span className="text-xs font-black text-black">{value}%</span>
                 </div>
-                <span className="text-sm font-semibold text-slate-800">{value}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-slate-100">
-                <div className={`h-2 rounded-full transition-all ${color}`} style={{ width: `${value}%` }} />
+                <div className="h-1.5 w-full bg-[#F2F2F2]">
+                  <div className="h-1.5 bg-black transition-all" style={{ width: `${value}%` }} />
+                </div>
               </div>
             </div>
           ))}
@@ -149,49 +137,61 @@ export default async function ManagerDashboardPage() {
 
       {/* Pending approvals list */}
       {approvals.length > 0 ? (
-        <div className="space-y-3">
-          <h2 className="font-semibold text-slate-900">Pending Approvals</h2>
-          {approvals.map(({ ownerName, sheet }) => (
-            <Card key={sheet.id} className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700">
-                  {ownerName.charAt(0)}
+        <div>
+          <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-black">Pending Approvals</h2>
+          <div className="border-t-2 border-black">
+            {approvals.map(({ ownerName, sheet }) => (
+              <div
+                key={sheet.id}
+                className="flex items-center justify-between gap-4 border-b-2 border-black px-5 py-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-black bg-[#F2F2F2] text-base font-black text-black">
+                    {ownerName.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-wide text-black">{ownerName}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-black/55">
+                      {sheet.goals.length} goals · Submitted {formatDate(sheet.submittedAt)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-slate-900">{ownerName}</p>
-                  <p className="text-xs text-slate-400">
-                    {sheet.goals.length} goals · submitted {formatDate(sheet.submittedAt)}
-                  </p>
-                </div>
+                <Link href={`/dashboard/manager/approvals/${sheet.id}`}>
+                  <Button variant="secondary" className="gap-2 shrink-0">
+                    Review <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
               </div>
-              <Link href={`/dashboard/manager/approvals/${sheet.id}`}>
-                <Button variant="secondary" className="gap-2 shrink-0">
-                  Review <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </Card>
-          ))}
+            ))}
+          </div>
         </div>
       ) : null}
 
       {/* Quick links */}
-      <div className="grid gap-3 md:grid-cols-3">
-        {[
-          { href: "/dashboard/manager/check-ins",    label: "Team Check-ins",   icon: ClipboardCheck, desc: "Review quarterly actuals" },
-          { href: "/dashboard/manager/shared-goals", label: "Shared Goals",     icon: CheckSquare,    desc: "Push departmental KPIs" },
-          { href: "/dashboard/manager/analytics",    label: "Analytics",        icon: TrendingUp,     desc: "Achievement trends" },
-        ].map(({ href, label, icon: Icon, desc }) => (
-          <Link key={href} href={href}>
-            <Card className="flex items-center gap-3 p-4 hover:border-teal-200 hover:bg-teal-50 transition-colors cursor-pointer">
-              <Icon className="h-5 w-5 text-teal-600 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-slate-800">{label}</p>
-                <p className="text-xs text-slate-400">{desc}</p>
+      <div>
+        <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-black">Quick Links</h2>
+        <div className="grid border-t-2 border-black md:grid-cols-3">
+          {[
+            { href: "/dashboard/manager/check-ins",    label: "Team Check-ins",  icon: ClipboardCheck, desc: "Review quarterly actuals"  },
+            { href: "/dashboard/manager/shared-goals", label: "Shared Goals",    icon: CheckSquare,    desc: "Push departmental KPIs"    },
+            { href: "/dashboard/manager/analytics",    label: "Analytics",       icon: TrendingUp,     desc: "Achievement trends"        },
+          ].map(({ href, label, icon: Icon, desc }) => (
+            <Link key={href} href={href}>
+              <div className="group flex items-center gap-4 border-b-2 border-black p-6 transition-colors hover:bg-black md:border-r-2 md:last:border-r-0">
+                <Icon className="h-5 w-5 shrink-0 text-black/40 group-hover:text-white" />
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-wider text-black group-hover:text-white">
+                    {label}
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-black/55 group-hover:text-white/70">
+                    {desc}
+                  </p>
+                </div>
+                <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-black/30 group-hover:text-white" />
               </div>
-              <ArrowRight className="ml-auto h-4 w-4 text-slate-300" />
-            </Card>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

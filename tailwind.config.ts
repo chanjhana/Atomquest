@@ -9,25 +9,32 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "Helvetica Neue", "Arial", "sans-serif"],
+      },
       colors: {
-        border: "hsl(var(--border))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "#000000",
+        background: "#FFFFFF",
+        foreground: "#000000",
         primary: {
-          DEFAULT: "#0f766e",
-          foreground: "#ffffff"
+          DEFAULT: "#000000",
+          foreground: "#FFFFFF",
         },
         accent: {
-          DEFAULT: "#f97316",
-          foreground: "#111827"
-        }
+          DEFAULT: "#FF3000",
+          foreground: "#FFFFFF",
+        },
+        muted: {
+          DEFAULT: "#F2F2F2",
+          foreground: "#000000",
+        },
       },
       boxShadow: {
-        soft: "0 18px 45px rgba(15, 23, 42, 0.08)"
-      }
-    }
+        soft: "none",
+      },
+    },
   },
-  plugins: [require("tailwindcss-animate")]
+  plugins: [require("tailwindcss-animate")],
 };
 
 export default config;

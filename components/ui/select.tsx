@@ -5,7 +5,10 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className={cn("focus-ring w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm", props.className)}
+      className={cn(
+        "w-full border-2 border-black bg-white px-4 py-3 text-sm font-medium text-black focus:border-[#FF3000] focus:outline-none transition-colors disabled:bg-[#F2F2F2] disabled:cursor-not-allowed",
+        props.className
+      )}
     />
   );
 }

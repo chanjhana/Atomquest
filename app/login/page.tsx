@@ -1,58 +1,95 @@
 import { loginAsRole, loginWithPassword } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 const roles = [
   { role: "employee", label: "Login as Employee", email: "employee@demo.com" },
   { role: "manager", label: "Login as Manager", email: "manager@demo.com" },
-  { role: "admin", label: "Login as Admin", email: "admin@demo.com" }
+  { role: "admin", label: "Login as Admin", email: "admin@demo.com" },
+];
+
+const features = [
+  { num: "01", label: "Goal Setting & Tracking" },
+  { num: "02", label: "Manager Approval Workflow" },
+  { num: "03", label: "Quarterly Check-ins" },
+  { num: "04", label: "Escalation Engine" },
+  { num: "05", label: "Analytics & Audit Trail" },
 ];
 
 export default function LoginPage({ searchParams }: { searchParams?: { error?: string } }) {
   return (
-    <main className="grid min-h-screen place-items-center p-6">
-      <Card className="w-full max-w-4xl overflow-hidden p-0">
-        <div className="grid md:grid-cols-[0.9fr_1.1fr]">
-          <section className="bg-slate-950 p-10 text-white">
-            <p className="text-xl font-bold uppercase tracking-[0.28em] text-teal-300">Tracko</p>
-            <h1 className="mt-6 text-4xl font-semibold leading-tight">Performance management that actually closes the loop.</h1>
-            <p className="mt-4 text-sm leading-6 text-slate-300">
-              Goal setting, manager approvals, quarterly check-ins, and escalations — unified into one seamless workflow.
-            </p>
-            {/* <ul className="mt-8 space-y-2 text-sm text-slate-400">
-              <li className="flex items-center gap-2"><span className="text-teal-400">✓</span> Employees set and submit goals</li>
-              <li className="flex items-center gap-2"><span className="text-teal-400">✓</span> Managers review, approve, or return</li>
-              <li className="flex items-center gap-2"><span className="text-teal-400">✓</span> Quarterly check-ins with live scoring</li>
-              <li className="flex items-center gap-2"><span className="text-teal-400">✓</span> Auto-escalation for overdue actions</li>
-            </ul> */}
-          </section>
-          <section className="p-10">
-            <h2 className="text-2xl font-semibold text-slate-950">Sign In</h2>
-            <p className="mt-2 text-sm text-slate-500">Use a demo account below to explore each role — no setup needed.</p>
-            {searchParams?.error ? (
-              <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{searchParams.error}</p>
-            ) : null}
-            <form action={loginWithPassword} className="mt-8 space-y-4">
-              <Input name="email" type="email" placeholder="employee@demo.com" required />
-              <Input name="password" type="password" placeholder="Password" required />
-              <Button className="w-full" type="submit">Sign In</Button>
-            </form>
-            <div className="mt-8 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Demo Quick Access</p>
-              {roles.map((item) => (
-                <form action={loginAsRole} key={item.role}>
-                  <input type="hidden" name="email" value={item.email} />
-                  <Button className="w-full justify-between" type="submit">
-                    <span>{item.label}</span>
-                    <span className="text-xs font-normal opacity-80">{item.email}</span>
-                  </Button>
-                </form>
-              ))}
-            </div>
-          </section>
+    <main className="flex min-h-screen">
+      {/* Left — black panel */}
+      <section className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-black p-12 md:flex swiss-grid">
+        <div className="relative z-10">
+          <p className="text-sm font-black uppercase tracking-[0.5em] text-[#FF3000]">Tracko</p>
         </div>
-      </Card>
+
+        <div className="relative z-10">
+          <h1 className="text-6xl font-black uppercase leading-none tracking-tighter text-white lg:text-7xl">
+            Performance<br />Management<br />That<br />Closes<br />the Loop.
+          </h1>
+        </div>
+
+        <div className="relative z-10 border-t-2 border-white/15 pt-8">
+          {features.map((f) => (
+            <div key={f.num} className="flex items-center gap-4 border-b border-white/10 py-3.5">
+              <span className="w-7 text-xs font-black text-[#FF3000]">{f.num}</span>
+              <span className="text-sm font-bold uppercase tracking-wider text-white/70">{f.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Right — white panel */}
+      <section className="flex flex-1 flex-col justify-center px-10 py-12 md:px-16 swiss-dots">
+        {/* Mobile brand */}
+        <p className="mb-10 text-sm font-black uppercase tracking-[0.5em] text-[#FF3000] md:hidden">
+          Tracko
+        </p>
+
+        <h2 className="text-4xl font-black uppercase tracking-tighter text-black">Sign In</h2>
+        <p className="mt-2 text-sm font-semibold uppercase tracking-wider text-black/60">
+          Use a demo account to explore each role — no setup needed.
+        </p>
+
+        {searchParams?.error ? (
+          <div className="mt-6 border-l-4 border-[#FF3000] bg-[#F2F2F2] px-4 py-3">
+            <p className="text-sm font-bold uppercase tracking-wide text-[#FF3000]">
+              {searchParams.error}
+            </p>
+          </div>
+        ) : null}
+
+        <form action={loginWithPassword} className="mt-8 space-y-0">
+          <Input name="email" type="email" placeholder="Email address" required className="border-b-0" />
+          <Input name="password" type="password" placeholder="Password" required />
+          <Button className="mt-4 w-full py-3.5 text-sm" type="submit">
+            Sign In
+          </Button>
+        </form>
+
+        <div className="mt-10">
+          <p className="text-xs font-black uppercase tracking-[0.4em] text-black/55">
+            Demo Quick Access
+          </p>
+          <div className="mt-3 border-t-2 border-black">
+            {roles.map((item) => (
+              <form action={loginAsRole} key={item.role} className="border-b-2 border-black">
+                <input type="hidden" name="email" value={item.email} />
+                <Button
+                  className="h-14 w-full justify-between px-4 text-sm hover:bg-black hover:text-white"
+                  variant="ghost"
+                  type="submit"
+                >
+                  <span className="font-black">{item.label}</span>
+                  <span className="text-xs font-normal text-black/50">{item.email}</span>
+                </Button>
+              </form>
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
