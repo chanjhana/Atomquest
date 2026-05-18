@@ -8,14 +8,6 @@ const roles = [
   { role: "admin", label: "Login as Admin", email: "admin@demo.com" },
 ];
 
-const features = [
-  { num: "01", label: "Goal Setting & Tracking" },
-  { num: "02", label: "Manager Approval Workflow" },
-  { num: "03", label: "Quarterly Check-ins" },
-  { num: "04", label: "Escalation Engine" },
-  { num: "05", label: "Analytics & Audit Trail" },
-];
-
 export default function LoginPage({ searchParams }: { searchParams?: { error?: string } }) {
   return (
     <main className="flex min-h-screen">
@@ -31,13 +23,10 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
           </h1>
         </div>
 
-        <div className="relative z-10 border-t-2 border-white/15 pt-8">
-          {features.map((f) => (
-            <div key={f.num} className="flex items-center gap-4 border-b border-white/10 py-3.5">
-              <span className="w-7 text-xs font-black text-[#FF3000]">{f.num}</span>
-              <span className="text-sm font-bold uppercase tracking-wider text-white/70">{f.label}</span>
-            </div>
-          ))}
+        <div className="relative z-10">
+          <p className="text-sm font-semibold uppercase tracking-widest text-white/55">
+            Goal setting · Approvals · Check-ins · Escalations · Analytics
+          </p>
         </div>
       </section>
 
