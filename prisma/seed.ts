@@ -119,8 +119,8 @@ async function main() {
       isActive: true,
       goalSettingStart: new Date("2026-05-01"),
       goalSettingEnd: new Date("2026-05-31"),
-      q1Start: new Date("2026-07-01"),
-      q1End: new Date("2026-07-31"),
+      q1Start: new Date("2026-05-15"),
+      q1End: new Date("2026-06-15"),
       q2Start: new Date("2026-10-01"),
       q2End: new Date("2026-10-31"),
       q3Start: new Date("2027-01-01"),
@@ -130,15 +130,13 @@ async function main() {
     }
   });
 
-  // Arun Kumar — approved_locked sheet with Q1 check-in data (employee demo)
+  // Arun Kumar — draft sheet with goals ready to submit (employee demo)
   const arunSheet = await prisma.goalSheet.create({
     data: {
       userId: employee.id,
       managerId: manager.id,
       cycleId: cycle.id,
-      status: "approved_locked",
-      submittedAt: new Date("2026-05-10"),
-      approvedAt: new Date("2026-05-15")
+      status: "draft"
     }
   });
 
@@ -167,35 +165,6 @@ async function main() {
       target: "80%",
       weightage: 60,
       sortOrder: 2
-    }
-  });
-
-  // Q1 check-ins for Arun (submitted)
-  // Goal 1: 3 incidents vs target 5 (lower_is_better) → 5/3*100 = 166 → capped at 100
-  await prisma.checkIn.create({
-    data: {
-      goalId: arunGoal1.id,
-      userId: employee.id,
-      quarter: "q1",
-      actualValue: "3 incidents",
-      status: "completed",
-      computedScore: 100,
-      employeeComment: "Improved monitoring pipeline. Only 3 incidents this quarter, all resolved proactively.",
-      employeeSubmittedAt: new Date("2026-07-28")
-    }
-  });
-
-  // Goal 2: 65% vs target 80% (higher_is_better) → 65/80*100 = 81.25
-  await prisma.checkIn.create({
-    data: {
-      goalId: arunGoal2.id,
-      userId: employee.id,
-      quarter: "q1",
-      actualValue: "65%",
-      status: "on_track",
-      computedScore: 81.25,
-      employeeComment: "Covered core payment and auth modules. Expanding to infrastructure next quarter.",
-      employeeSubmittedAt: new Date("2026-07-28")
     }
   });
 
@@ -275,41 +244,11 @@ async function main() {
   // Audit log trail for admin demo
   await prisma.auditLog.create({
     data: {
-      userId: employee.id,
-      goalSheetId: arunSheet.id,
-      action: "submit",
-      target: "Goal Sheet",
-      newValue: "pending_approval"
-    }
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: manager.id,
-      goalSheetId: arunSheet.id,
-      action: "approve",
-      target: "Goal Sheet",
-      oldValue: "pending_approval",
-      newValue: "approved_locked"
-    }
-  });
-
-  await prisma.auditLog.create({
-    data: {
       userId: teammate.id,
       goalSheetId: meenaSheet.id,
       action: "submit",
       target: "Goal Sheet",
       newValue: "pending_approval"
-    }
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: employee.id,
-      goalSheetId: arunSheet.id,
-      action: "submit_checkin",
-      target: "Q1 Check-in"
     }
   });
 
