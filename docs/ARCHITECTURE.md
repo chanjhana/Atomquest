@@ -1,515 +1,284 @@
-# ARCHITECTURE.md — System Architecture
+# Tracko — Architecture
 
-## AtomQuest Hackathon 1.0 — In-House Goal Setting & Tracking Portal
+**Stack:** Next.js 14 App Router · TypeScript · Prisma · Supabase PostgreSQL · Supabase Auth · Vercel
 
-**Version:** Lean Hackathon Edition  
-**Scope:** Core BRD requirements + Good-to-Have 5.3 Escalation Module + 5.4 Analytics Module
+---
 
-## 1. Architecture Decision
-
-This solution uses a **lean monolithic Next.js architecture** deployed on Vercel, backed by Supabase PostgreSQL and Supabase Auth. Prisma is used as the application ORM, while all business rules live inside the app in TypeScript services and server actions.
-
-This is deliberate. The hackathon does not reward architectural complexity; it rewards working functionality, BRD adherence, low bug count, and a good demo. So the architecture includes only what is required to deliver the portal plus the chosen bonus features.
-
-## 2. High-Level Architecture
-
-### Summary
-
-The system has four practical layers:
-
-1. **Presentation Layer**  
-   Next.js pages and components for Employee, Manager, and Admin.
-
-2. **Application Layer**  
-   Server Actions and Route Handlers that process requests, validate input, enforce role rules, and call services.
-
-3. **Domain Logic Layer**  
-   Pure TypeScript modules for validation, shared-goal sync, UoM score calculation, cycle window enforcement, audit logging, escalation checks, and analytics aggregation.
-
-4. **Data Layer**  
-   Supabase PostgreSQL accessed through Prisma, plus Supabase Auth for login/session handling.
-
-### Mermaid — High-Level Diagram
+## 1. System Architecture
 
 ```mermaid
 graph TB
-    subgraph Browser[Browser]
-        E[Employee UI]
-        M[Manager UI]
-        A[Admin UI]
+    subgraph Browser["Browser"]
+        EU["Employee UI"]
+        MU["Manager UI"]
+        AU["Admin UI"]
     end
 
-    subgraph App[Next.js App on Vercel]
-        RSC[Server Components]
-        SA[Server Actions]
-        API[Route Handlers / API]
-        BL[Business Logic Services]
-        AUTH[Auth + RBAC]
-        ORM[Prisma ORM]
+    subgraph Vercel["Next.js 14 on Vercel"]
+        MW["Middleware\nRole-cookie guard on /dashboard/*"]
+
+        subgraph Presentation["Presentation Layer"]
+            RSC["Server Components\nFetch + render per-role pages"]
+            SA["Server Actions\nHandle all mutations"]
+        end
+
+        subgraph APIRoutes["API Routes"]
+            R1["GET /api/reports/achievement\nStreams achievement CSV"]
+            R2["GET /api/cron/escalations\nRuns escalation rule engine"]
+        end
+
+        subgraph AppServices["Application Services  ·  lib/services/"]
+            AUTH["Auth\nrequireRole · session cookie"]
+            LD["Live Data\nAll read queries"]
+            MUT["Mutations\nAll write operations"]
+            SE["Score Engine\nUoM · score direction"]
+            ESC["Escalation Engine\nRule evaluation · level advance"]
+            WIN["Cycle Windows\nActive quarter · window open/closed"]
+            VAL["Validation\nZod schemas"]
+        end
+
+        ORM["Prisma ORM\nType-safe query builder"]
     end
 
-    subgraph Supabase[Supabase]
-        DB[(PostgreSQL)]
-        SAUTH[Supabase Auth]
+    subgraph Supabase["Supabase (hosted PostgreSQL)"]
+        SAUTH["Supabase Auth\nJWT · email login"]
+        DB[("PostgreSQL\n9 tables")]
     end
 
-    Browser --> RSC
-    Browser --> SA
-    Browser --> API
-    RSC --> AUTH
-    SA --> AUTH
-    API --> AUTH
-    RSC --> BL
-    SA --> BL
-    API --> BL
-    BL --> ORM
-    ORM --> DB
+    EU & MU & AU --> MW
+    MW --> RSC & SA & R1 & R2
+    RSC & SA --> AUTH & LD & MUT & SE & WIN & VAL
+    R1 --> LD
+    R2 --> ESC
     AUTH --> SAUTH
+    LD & MUT & ESC --> ORM
+    ORM --> DB
 ```
 
-## 3. Why this architecture is right-sized
+---
 
-This architecture is intentionally smaller than the earlier enterprise-style version.
+## 2. Request Lifecycle — Typical Mutation
 
-Included:
-- Multi-role web app
-- Goal workflow
-- Approval workflow
-- Check-ins
-- Reporting/export
-- Audit trail
-- Escalations
-- Analytics
+```mermaid
+sequenceDiagram
+    actor User
+    participant MW as Middleware
+    participant SA as Server Action
+    participant Auth as requireRole()
+    participant SB as Supabase Auth
+    participant Svc as Service + Prisma
+    participant DB as PostgreSQL
 
-Excluded:
-- Realtime subscriptions
-- Teams integration
-- Azure AD
-- File upload system
-- Notification platform
-- Service decomposition
-- Event-driven infrastructure
+    User->>MW: POST (form submit)
+    MW->>MW: Check role cookie on /dashboard/*
+    MW-->>User: Redirect /login if missing
 
-The result is easier to implement, easier to debug, and much safer for a hackathon demo.
+    User->>SA: Form data
+    SA->>Auth: requireRole(["manager"])
+    Auth->>SB: getUser() — validate JWT
+    SB-->>Auth: User session
+    Auth-->>SA: Typed User object
 
-## 4. Primary User Flows
+    SA->>SA: Zod validation
+    SA->>Svc: e.g. approveGoalSheet(sheetId, managerId)
+    Svc->>DB: Prisma transaction\n(update sheet + write audit log)
+    DB-->>Svc: Committed
+    Svc-->>SA: Success
+    SA-->>User: revalidatePath + return { success }
+```
 
-### 4.1 Employee Flow
+---
 
-1. Login.
-2. Create goal sheet for active cycle.
-3. Add up to 8 goals, including any assigned shared goals.
-4. Submit when total weightage = 100 and each goal is at least 10.
-5. Adjust only weightage for assigned shared goals; shared title and target stay read-only.
-6. During active quarter, enter actual achievement and status.
-7. View locked goals and historical check-ins.
-
-### 4.2 Manager Flow
-
-1. Login.
-2. Open pending approval queue.
-3. Review submitted goal sheet.
-4. Approve as-is, edit inline and approve, or return for rework.
-5. Push shared departmental KPIs to selected direct reports.
-6. Review quarterly check-ins for direct reports.
-7. Add check-in comments and complete manager review.
-8. View team completion and achievement analytics.
-
-### 4.3 Admin Flow
-
-1. Login.
-2. Configure and activate cycle windows.
-3. Manage or verify employee-manager hierarchy.
-4. Push shared departmental KPIs when needed.
-5. Unlock goal sheets when needed.
-6. View audit logs.
-7. Export achievement reports.
-8. View organization-level completion dashboard and analytics.
-9. Review escalation records.
-
-## 5. Core Modules
-
-| Module | Responsibility |
-|---|---|
-| Auth module | Login, session lookup, role extraction |
-| Goal sheet module | Drafting, editing, submission, locking |
-| Shared goal module | Push departmental KPIs, link recipient goals, enforce read-only shared metadata, sync primary-owner achievements |
-| Approval module | Manager review, edits, return, approve |
-| Check-in module | Quarterly actual entry, status update, manager review |
-| Score engine | Compute progress score by UoM type and score direction |
-| Cycle module | Active cycle and open-window enforcement |
-| Org hierarchy module | Maintain employee-manager relationships for dashboards and escalations |
-| Audit module | Append-only tracking of changes |
-| Report module | Achievement report queries and export |
-| Escalation module | Detect overdue submissions/approvals/check-ins |
-| Analytics module | QoQ trends, completion rates, status distribution |
-
-## 6. Database Design
-
-### 6.1 Final tables to keep
-
-| Table | Purpose |
-|---|---|
-| `users` | App users with role and reporting hierarchy |
-| `cycles` | Goal-setting and check-in windows |
-| `goal_sheets` | One sheet per employee per cycle |
-| `goals` | Individual goals under a sheet |
-| `shared_goal_groups` | Shared KPI source records pushed by Admin/Manager |
-| `shared_goal_links` | Recipient goal links with per-employee weightage and primary-owner mapping |
-| `check_ins` | Quarterly progress and manager review |
-| `audit_logs` | Immutable change history |
-| `escalations` | Overdue workflow tracking for feature 5.3 |
-
-### 6.2 Optional table
-
-| Table | Keep only if needed |
-|---|---|
-| `thrust_areas` | Use if thrust areas are admin-managed instead of hardcoded seed values |
-
-### 6.3 Excluded tables
-
-These are intentionally excluded from the lean build:
-- `notifications`
-- storage/file tables
-
-Reason: they are not necessary for the must-have scope or the selected bonus set. Shared-goal tables are included because shared goals are Phase 1 must-have.
-
-## 7. Simplified ER Model
+## 3. Data Model
 
 ```mermaid
 erDiagram
-    users ||--o{ goal_sheets : owns
-    users ||--o{ goal_sheets : manages
-    cycles ||--o{ goal_sheets : contains
-    goal_sheets ||--|{ goals : includes
-    shared_goal_groups ||--o{ shared_goal_links : has
-    goals ||--o| shared_goal_links : linked_as_recipient
-    users ||--o{ shared_goal_groups : owns
-    goals ||--o{ check_ins : tracked_by
-    users ||--o{ audit_logs : performs
-    goal_sheets ||--o{ audit_logs : logs
-    users ||--o{ escalations : assigned_to
-    goal_sheets ||--o{ escalations : escalated_for
+    User {
+        string id PK
+        string name
+        string email
+        enum   role
+        string managerId FK
+        string department
+        string designation
+        string supabaseAuthId
+    }
+
+    Cycle {
+        string   id PK
+        string   name
+        datetime goalSettingStart
+        datetime goalSettingEnd
+        datetime q1Start
+        datetime q1End
+        datetime q2Start
+        datetime q2End
+        datetime q3Start
+        datetime q3End
+        datetime q4Start
+        datetime q4End
+        boolean  isActive
+    }
+
+    GoalSheet {
+        string   id PK
+        string   userId FK
+        string   managerId FK
+        string   cycleId FK
+        enum     status
+        string   returnComment
+        datetime submittedAt
+        datetime approvedAt
+    }
+
+    Goal {
+        string  id PK
+        string  goalSheetId FK
+        string  title
+        string  thrustArea
+        enum    uomType
+        enum    scoreDirection
+        string  target
+        int     weightage
+        boolean isShared
+        string  sharedGoalGroupId FK
+    }
+
+    SharedGoalGroup {
+        string id PK
+        string createdByUserId FK
+        string primaryOwnerUserId FK
+        string cycleId FK
+        string title
+        enum   uomType
+        enum   scoreDirection
+        string target
+    }
+
+    SharedGoalLink {
+        string  id PK
+        string  sharedGoalGroupId FK
+        string  goalId FK
+        string  recipientUserId FK
+        boolean isPrimaryOwner
+    }
+
+    CheckIn {
+        string   id PK
+        string   goalId FK
+        string   userId FK
+        enum     quarter
+        string   actualValue
+        float    computedScore
+        enum     status
+        string   employeeComment
+        string   managerComment
+        boolean  managerCheckedIn
+        datetime employeeSubmittedAt
+        datetime managerCheckedInAt
+    }
+
+    AuditLog {
+        string   id PK
+        string   userId FK
+        string   goalSheetId FK
+        string   goalId FK
+        string   action
+        string   fieldChanged
+        string   oldValue
+        string   newValue
+        string   reason
+        datetime createdAt
+    }
+
+    Escalation {
+        string   id PK
+        string   goalSheetId FK
+        string   userId FK
+        enum     ruleType
+        int      escalationLevel
+        enum     status
+        int      daysPending
+        datetime triggeredAt
+        datetime resolvedAt
+    }
+
+    User        ||--o{ User          : "reports to (managerId)"
+    User        ||--o{ GoalSheet     : "owns"
+    User        ||--o{ GoalSheet     : "manages"
+    Cycle       ||--o{ GoalSheet     : "contains"
+    GoalSheet   ||--|{ Goal          : "includes"
+    Goal        ||--o{ CheckIn       : "tracked by"
+    Goal        ||--o| SharedGoalLink : "linked as recipient"
+    SharedGoalGroup ||--|{ SharedGoalLink : "distributed via"
+    SharedGoalGroup ||--o{ Goal      : "instantiated as"
+    User        ||--o{ SharedGoalGroup : "creates"
+    User        ||--o{ SharedGoalGroup : "primary owner"
+    User        ||--o{ CheckIn       : "submits"
+    User        ||--o{ AuditLog      : "generates"
+    User        ||--o{ Escalation    : "assigned to"
+    GoalSheet   ||--o{ AuditLog      : "logged against"
+    GoalSheet   ||--o{ Escalation    : "escalated for"
+    Goal        ||--o{ AuditLog      : "logged against"
 ```
 
-## 8. Table-Level Design
+---
 
-### 8.1 `users`
+## 4. Module Map
 
-Purpose:
-- Stores app-level identity and reporting hierarchy.
+| Module | Location | Responsibility |
+|---|---|---|
+| Auth | `lib/auth/` | `requireRole()`, session cookie read, Supabase session |
+| Live Data | `lib/services/live-data.ts` | All read queries — goal sheets, check-ins, analytics |
+| Mutations | `lib/services/mutations.ts` | All write operations — approve, submit, unlock, push shared |
+| Score Engine | `lib/services/score-engine.ts` | Pure UoM score computation — numeric, %, timeline, zero |
+| Escalation Engine | `lib/services/escalations.ts` | Rule evaluation, level advance, `/api/cron/escalations` |
+| Cycle Windows | `lib/services/windows.ts` | Active quarter detection, window open/closed checks |
+| Validation | `lib/validation/` | Zod schemas for all server action inputs |
+| Server Actions | `app/actions/` | Thin orchestrators — validate → auth → service → revalidate |
+| Reports | `lib/services/reports.ts` | Achievement CSV generation |
 
-Key fields:
-- `id`
-- `name`
-- `email`
-- `role` (`employee`, `manager`, `admin`)
-- `manager_id`
-- `department`
-- `designation`
-- `supabase_auth_id`
+---
 
-### 8.2 `cycles`
+## 5. Role & Feature Matrix
 
-Purpose:
-- Controls active windows for goal creation and quarterly check-ins.
+| Feature | Employee | Manager | Admin |
+|---|:---:|:---:|:---:|
+| Create & submit goal sheet | ✅ | | |
+| Enter quarterly actuals (check-in) | ✅ | | |
+| View check-in history | ✅ | | |
+| Approve / return / edit goal sheet | | ✅ | |
+| Push shared departmental KPIs | | ✅ | ✅ |
+| Review team check-ins + add comments | | ✅ | |
+| Team analytics | | ✅ | |
+| Activate cycle & configure windows | | | ✅ |
+| Manage org hierarchy | | | ✅ |
+| Unlock approved goal sheet | | | ✅ |
+| View escalations & resolve | | | ✅ |
+| Export achievement CSV | | | ✅ |
+| Org-wide analytics (5 charts) | | | ✅ |
+| Audit log | | | ✅ |
 
-Key fields:
-- `id`
-- `name`
-- `goal_setting_start`, `goal_setting_end`
-- `q1_start`, `q1_end`
-- `q2_start`, `q2_end`
-- `q3_start`, `q3_end`
-- `q4_start`, `q4_end`
-- `is_active`
+---
 
-### 8.3 `goal_sheets`
-
-Purpose:
-- One sheet per employee per cycle.
-
-Key fields:
-- `id`
-- `user_id`
-- `manager_id`
-- `cycle_id`
-- `status` (`draft`, `pending_approval`, `approved_locked`, `returned`)
-- `return_comment`
-- `submitted_at`
-- `approved_at`
-
-Constraint:
-- Unique `(user_id, cycle_id)`
-
-### 8.4 `goals`
-
-Purpose:
-- Stores individual goals in a goal sheet.
-
-Key fields:
-- `id`
-- `goal_sheet_id`
-- `title`
-- `description`
-- `thrust_area`
-- `uom_type`
-- `score_direction` (`higher_is_better`, `lower_is_better`, nullable for Timeline/Zero)
-- `target`
-- `weightage`
-- `sort_order`
-- `is_shared`
-- `shared_goal_group_id` (optional)
-
-Business rules:
-- Max 8 goals per sheet
-- Min 10 weightage per goal
-- Total weightage must equal 100 before submit
-- Shared goal recipients can edit only `weightage`
-- Shared title, description, thrust area, UoM, score direction, and target are read-only for recipients
-
-### 8.5 `shared_goal_groups`
-
-Purpose:
-- Stores the shared departmental KPI metadata and primary owner.
-
-Key fields:
-- `id`
-- `created_by_user_id`
-- `primary_owner_user_id`
-- `cycle_id`
-- `title`
-- `description`
-- `thrust_area`
-- `uom_type`
-- `score_direction`
-- `target`
-- `created_at`
-
-### 8.6 `shared_goal_links`
-
-Purpose:
-- Links a shared KPI to recipient goal rows while allowing employee-specific weightage.
-
-Key fields:
-- `id`
-- `shared_goal_group_id`
-- `goal_id`
-- `recipient_user_id`
-- `is_primary_owner`
-- `created_at`
-
-Constraint:
-- Unique `(shared_goal_group_id, recipient_user_id)`
-
-### 8.7 `check_ins`
-
-Purpose:
-- Stores employee achievement and manager review per quarter.
-
-Key fields:
-- `id`
-- `goal_id`
-- `quarter`
-- `actual_value`
-- `status`
-- `computed_score`
-- `employee_comment`
-- `manager_comment`
-- `manager_checked_in`
-- `employee_submitted_at`
-- `manager_checked_in_at`
-
-Constraint:
-- Unique `(goal_id, quarter)`
-
-### 8.8 `audit_logs`
-
-Purpose:
-- Captures all important changes, especially after locking and admin unlock actions.
-
-Key fields:
-- `id`
-- `user_id`
-- `goal_sheet_id`
-- `goal_id` (optional)
-- `action`
-- `field_changed`
-- `old_value`
-- `new_value`
-- `reason`
-- `created_at`
-
-### 8.9 `escalations`
-
-Purpose:
-- Tracks overdue goal submissions, approvals, and quarterly check-ins.
-
-Key fields:
-- `id`
-- `goal_sheet_id`
-- `user_id`
-- `rule_type`
-- `escalation_level`
-- `status`
-- `triggered_at`
-- `resolved_at`
-
-## 9. UoM Score Computation
-
-The score engine should be a pure service module, not spread across UI components. Numeric and percentage goals require both `uom_type` and `score_direction`; UoM alone is not enough to know whether higher or lower values are better.
-
-Rules:
-- **Min / higher-is-better Numeric / %:** score = achievement / target
-- **Max / lower-is-better Numeric / %:** score = target / achievement
-- **Timeline:** completed by or before deadline = success, else not complete
-- **Zero-based:** 0 = success, anything else = failure
-
-Application note:
-- Cap scores at 100% for display unless the product explicitly wants overachievement visibility.
-- Keep raw values available for reports if needed.
-
-## 10. API / Server Action Surface
-
-### 10.1 Core mutations
-
-| Function | Role |
-|---|---|
-| `createGoalSheet` | Employee |
-| `updateGoalSheet` | Employee |
-| `submitGoalSheet` | Employee |
-| `approveGoalSheet` | Manager |
-| `returnGoalSheet` | Manager |
-| `pushSharedGoal` | Manager/Admin |
-| `updateSharedGoalRecipientWeightage` | Employee |
-| `saveCheckIn` | Employee |
-| `completeManagerCheckIn` | Manager |
-| `createCycle` | Admin |
-| `activateCycle` | Admin |
-| `updateOrgHierarchy` | Admin |
-| `unlockGoalSheet` | Admin |
-
-### 10.2 Core reads
-
-| Route / Query | Role |
-|---|---|
-| `getMyGoalSheet` | Employee |
-| `getSharedGoalGroup` | Manager/Admin |
-| `getPendingApprovals` | Manager |
-| `getTeamCheckIns` | Manager |
-| `getAuditLogs` | Admin |
-| `getAchievementReport` | Manager/Admin |
-| `getCompletionDashboard` | Manager/Admin |
-| `getAnalyticsDashboard` | Manager/Admin |
-| `getEscalations` | Admin |
-
-## 11. Escalation Module Design (Feature 5.3)
-
-### Scope
-
-Implement only rule-based escalation for:
-- Employee has not submitted goals within N days of cycle opening.
-- Manager has not approved goals within N days of submission.
-- Quarterly check-in not completed within active window.
-- Escalation chain progression from employee to manager to skip-level / HR after configured intervals.
-
-### Lean implementation
-
-Use one scheduled job only. It can be:
-- Supabase scheduled function, or
-- a simple cron-triggered server route if easier in deployment.
-
-The scheduled process should:
-1. Query overdue goal sheets or check-ins.
-2. Create or update an `escalations` record.
-3. Mark escalation level and status.
-4. Advance chain state when the configured interval passes.
-5. Surface these in the Admin UI.
-
-Optional:
-- show reminders in-app
-- send email or Teams messages only if time remains
-
-Important: the hackathon score comes from visible working logic, not from building a sophisticated notification infrastructure.
-
-## 12. Analytics Module Design (Feature 5.4)
-
-### Scope
-
-Implement only these analytics views:
-- QoQ goal achievement trend
-- completion rate by quarter
-- goal distribution by status
-- goal distribution by thrust area or UoM type
-- manager completion dashboard
-
-### Lean implementation
-
-Use aggregation queries from PostgreSQL/Prisma and return chart-ready JSON to the frontend. Render using Recharts.
-
-Recommended charts:
-- Line chart: QoQ achievement trend
-- Bar chart: completion rates by quarter
-- Pie/Donut chart: status distribution
-- Bar chart: manager-wise completion comparison
-
-Do not build a generic analytics engine. Build 3-4 fixed dashboards only.
-
-## 13. Security Model
-
-Use practical security, not maximum-security architecture.
-
-Required:
-- Supabase Auth for login
-- role-aware route protection
-- server-side authorization checks on all mutations
-- audit logs for sensitive changes
-
-Optional:
-- focused RLS for core tables if time permits
-
-For this hackathon, app-level RBAC is enough if implemented correctly and tested well.
-
-## 14. Deployment Architecture
+## 6. Deployment
 
 ```mermaid
 graph LR
-    U[Users] --> V[Vercel - Next.js App]
-    V --> S[Supabase Auth]
-    V --> P[Supabase PostgreSQL]
+    GH["GitHub\nSource"]
+    GH -->|push to main| V
+
+    subgraph V["Vercel (Hobby)"]
+        NX["Next.js 14\nSSR + Server Actions"]
+    end
+
+    subgraph SB["Supabase (Free tier)"]
+        AUTH["Auth\nJWT · email"]
+        PG[("PostgreSQL\nPrisma schema")]
+    end
+
+    V -->|signIn / getUser| AUTH
+    V -->|Prisma via pgbouncer :6543| PG
 ```
 
-Deployment pieces:
-- Vercel for app hosting
-- Supabase for auth and database
-- GitHub for source control
-
-This satisfies the hackathon deliverable needs without introducing infrastructure overhead.
-
-## 15. Demo-First Implementation Order
-
-1. Auth and role-based login
-2. Employee goal creation with validation
-3. Manager approval / return / lock
-4. Shared goals push, recipient weightage edit, and primary-owner achievement sync
-5. Employee quarterly check-in
-6. Manager check-in review
-7. Admin cycle activation, org hierarchy management, and unlock
-8. Audit trail
-9. Achievement report export
-10. Analytics dashboard
-11. Escalation module
-
-This order ensures the must-have flow is stable before the selected bonus features are added.
-
-## 16. Submission Deliverables
-
-The delivery package must include:
-- Live / hosted demo URL.
-- Source code repository link.
-- Architecture diagram exported as PDF or image.
-- Demo login credentials for Employee, Manager, and Admin, or an in-app role-switching option.
-
-## 17. Final Conclusion
-
-This architecture is intentionally right-sized for AtomQuest Hackathon 1.0. It covers all must-have BRD requirements, including shared goals and org hierarchy management, and exactly two bonus features — escalation and analytics — while avoiding the unnecessary complexity that would increase bug risk and slow implementation.
+**Cost: $0.** Vercel Hobby + Supabase free tier covers the full production workload.

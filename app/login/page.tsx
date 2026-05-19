@@ -14,7 +14,7 @@ export default function LoginPage({ searchParams }: { searchParams?: { error?: s
       {/* Left — black panel */}
       <section className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-black p-12 md:flex swiss-grid">
         <div className="relative z-10">
-          <p className="text-sm font-black uppercase tracking-[0.5em] text-[#FF3000]">Tracko</p>
+          <p className="text-3xl font-black uppercase tracking-[0.3em] text-[#FF3000]">Tracko</p>
         </div>
 
         <div className="relative z-10">
